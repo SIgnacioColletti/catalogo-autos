@@ -1,57 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { isAuthenticated } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { getCurrentSession } from "@/lib/supabase/auth";
 
 // ==============================================
-// COMPONENTE PARA PROTEGER RUTAS ADMIN
+// PROTECTED ROUTE COMPONENT
 // ==============================================
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-}
-
-export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  const pathname = usePathname();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Marcar como montado en el cliente
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isMounted) return;
+    const checkAuth = async () => {
+      const session = await getCurrentSession();
 
-    // NO proteger la ruta de login
-    if (pathname === "/admin/login") {
-      setIsChecking(false);
-      return;
-    }
+      if (!session) {
+        router.push("/admin/login");
+      } else {
+        setIsLoading(false);
+      }
+    };
 
-    // Verificar autenticación para otras rutas
-    if (!isAuthenticated()) {
-      router.push("/admin/login");
-    } else {
-      setIsChecking(false);
-    }
-  }, [router, pathname, isMounted]);
+    checkAuth();
+  }, [router]);
 
-  // Si es la ruta de login, mostrar directamente
-  if (pathname === "/admin/login") {
-    return <>{children}</>;
-  }
-
-  // Mostrar loading mientras verifica o mientras no está montado
-  if (isChecking || !isMounted) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Verificando acceso...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando autenticación...</p>
         </div>
       </div>
     );

@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚗 Catálogo de Vehículos - AutoMax Rosario
 
-## Getting Started
+Sistema de catálogo virtual para agencias de autos y motos usadas desarrollado con Next.js 14 y Supabase.
 
-First, run the development server:
+## 🚀 Características
+
+### Catálogo Público
+
+- ✅ Listado de vehículos con filtros avanzados
+- ✅ Búsqueda en tiempo real
+- ✅ Detalle completo de cada vehículo
+- ✅ Galería de imágenes
+- ✅ Integración con WhatsApp
+- ✅ Sistema de vistas únicas
+- ✅ Responsive design
+
+### Panel Admin
+
+- ✅ Dashboard con estadísticas
+- ✅ CRUD completo de vehículos
+- ✅ Editor visual de características
+- ✅ Editor visual de imágenes
+- ✅ Cambio rápido de estado (Disponible/Reservado/Vendido)
+- ✅ Búsqueda y filtros
+- ✅ Autenticación con Supabase Auth
+
+## 🛠️ Stack Tecnológico
+
+- **Framework:** Next.js 14 (App Router)
+- **Lenguaje:** TypeScript
+- **Base de Datos:** Supabase (PostgreSQL)
+- **Autenticación:** Supabase Auth
+- **Estilos:** Tailwind CSS
+- **Componentes UI:** shadcn/ui
+- **Íconos:** Lucide React
+- **Animaciones:** Framer Motion
+- **Formularios:** React Hook Form + Zod
+- **Notificaciones:** Sonner
+
+## 📦 Instalación
 
 ```bash
+# Clonar repositorio
+git clone https://github.com/tu-usuario/catalogo-vehiculos.git
+
+# Instalar dependencias
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env.local
+# Editar .env.local con tus credenciales de Supabase
+
+# Ejecutar en desarrollo
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🔐 Variables de Entorno
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+NEXT_PUBLIC_SUPABASE_URL=tu-url-de-supabase
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-anon-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🗄️ Base de Datos
 
-## Learn More
+El proyecto incluye migraciones SQL en `/supabase/migrations/` para crear:
 
-To learn more about Next.js, take a look at the following resources:
+- Tabla `agencies`
+- Tabla `vehicles`
+- Políticas RLS
+- Índices
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 👤 Usuario Admin por Defecto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Email: `admin@automaxrosario.com.ar`
+- Password: `admin123`
 
-## Deploy on Vercel
+**⚠️ IMPORTANTE:** Cambiar estas credenciales en producción.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📱 Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Vercel (Recomendado)
+
+1. Conecta tu repositorio a Vercel
+2. Configura las variables de entorno
+3. Deploy automático
+
+## 📄 Licencia
+
+MIT
+
+## 👨‍💻 Autor
+
+Tu Nombre - [GitHub](https://github.com/tu-usuario)

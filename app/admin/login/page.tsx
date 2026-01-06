@@ -1,131 +1,163 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { login, isAuthenticated } from "@/lib/auth";
-import { LogIn, AlertCircle } from "lucide-react";
+import { login } from "@/lib/supabase/auth";
+import { toast } from "sonner";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import Image from "next/image";
 
-export default function AdminLoginPage() {
+// ==============================================
+// PÁGINA: LOGIN
+// ==============================================
+
+export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.push("/admin");
-    }
-  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+
+    if (!email || !password) {
+      toast.error("Error", {
+        description: "Por favor completa todos los campos",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    try {
+      console.log("Intentando login...", { email });
 
-    const success = login(email, password);
+      const { user, error } = await login({ email, password });
 
-    if (success) {
-      router.push("/admin");
-    } else {
-      setError("Email o contraseña incorrectos");
+      console.log("Resultado login:", { user, error });
+
+      if (error || !user) {
+        console.error("Error de login:", error);
+        toast.error("Error de autenticación", {
+          description: error || "Credenciales inválidas",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      console.log("Login exitoso, usuario:", user);
+
+      toast.success("¡Bienvenido!", {
+        description: "Redirigiendo...",
+      });
+
+      // Esperar un poco para asegurar que la sesión se guarde
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("Redirigiendo a /admin...");
+
+      // Redirigir
+      window.location.href = "/admin";
+    } catch (error) {
+      console.error("Excepción en login:", error);
+      toast.error("Error", {
+        description: "Ocurrió un error al iniciar sesión",
+      });
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 via-blue-700 to-purple-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary to-blue-700 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">
+        <CardHeader className="space-y-4">
+          <div className="flex justify-center">
+            <div className="relative h-16 w-16">
+              <Image
+                src="https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=100&h=100&fit=crop"
+                alt="Logo"
+                fill
+                className="object-contain rounded-full"
+              />
+            </div>
+          </div>
+          <CardTitle className="text-2xl text-center">
             Panel de Administración
           </CardTitle>
-          <CardDescription className="text-center">
-            Ingresá tus credenciales para acceder
-          </CardDescription>
+          <p className="text-sm text-gray-600 text-center">
+            Ingresa tus credenciales para continuar
+          </p>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@automaxrosario.com.ar"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="admin@automaxrosario.com.ar"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  disabled={isLoading}
+                  required
+                />
+              </div>
             </div>
 
+            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10 pr-10"
+                  disabled={isLoading}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Ingresando...
-                </>
-              ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Ingresar
-                </>
-              )}
+            {/* Botón Submit */}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          {/* Credenciales de prueba */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm font-semibold text-blue-900 mb-2">
               Credenciales de prueba:
             </p>
-            <p className="text-sm text-blue-800">
-              Email:{" "}
-              <code className="bg-white px-2 py-1 rounded">
-                admin@automaxrosario.com.ar
-              </code>
+            <p className="text-xs text-blue-700">
+              Email: admin@automaxrosario.com.ar
             </p>
-            <p className="text-sm text-blue-800">
-              Contraseña:{" "}
-              <code className="bg-white px-2 py-1 rounded">admin123</code>
-            </p>
+            <p className="text-xs text-blue-700">Contraseña: admin123</p>
           </div>
         </CardContent>
       </Card>

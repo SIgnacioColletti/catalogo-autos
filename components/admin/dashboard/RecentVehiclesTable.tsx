@@ -1,108 +1,74 @@
-"use client";
-
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { getRecentVehicles, getRelativeTime } from "@/lib/dashboard-utils";
 import { formatPrice } from "@/lib/utils";
-import { Eye, Edit } from "lucide-react";
+import type { Vehicle } from "@/lib/types";
 import Link from "next/link";
-import { SlideIn } from "@/components/animations/SlideIn";
+import { Eye } from "lucide-react";
 
-export const RecentVehiclesTable = () => {
-  const recentVehicles = getRecentVehicles(5);
+// ==============================================
+// TABLA DE VEHÍCULOS RECIENTES
+// ==============================================
 
+interface RecentVehiclesTableProps {
+  vehicles: Vehicle[];
+}
+
+export const RecentVehiclesTable = ({ vehicles }: RecentVehiclesTableProps) => {
   const getStatusBadge = (status: string) => {
     const variants = {
-      available: "bg-green-100 text-green-800",
-      sold: "bg-red-100 text-red-800",
-      reserved: "bg-yellow-100 text-yellow-800",
-    };
+      available: "default",
+      sold: "destructive",
+      reserved: "secondary",
+    } as const;
+
     const labels = {
       available: "Disponible",
       sold: "Vendido",
       reserved: "Reservado",
     };
+
     return (
-      <Badge className={variants[status as keyof typeof variants]}>
+      <Badge variant={variants[status as keyof typeof variants]}>
         {labels[status as keyof typeof labels]}
       </Badge>
     );
   };
 
   return (
-    <SlideIn direction="up" delay={0.4}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Últimos Vehículos Agregados</CardTitle>
-          <CardDescription>
-            Los 5 vehículos más recientes del inventario
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vehículo</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Agregado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentVehicles.map((vehicle) => (
-                <TableRow key={vehicle.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <p className="font-semibold">
-                        {vehicle.brand} {vehicle.model}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        {vehicle.year} • {vehicle.kilometers.toLocaleString()}{" "}
-                        km
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>{formatPrice(vehicle.price)}</TableCell>
-                  <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
-                  <TableCell className="text-sm text-gray-600">
-                    {getRelativeTime(vehicle.created_at)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link href={`/vehiculos/${vehicle.id}`} target="_blank">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link href={`/admin/vehiculos/${vehicle.id}/editar`}>
-                          <Edit className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </SlideIn>
+    <Card>
+      <CardHeader>
+        <CardTitle>Últimos Vehículos Agregados</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {vehicles.map((vehicle) => (
+            <div
+              key={vehicle.id}
+              className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex-1">
+                <Link
+                  href={`/admin/vehiculos/${vehicle.id}/editar`}
+                  className="font-medium text-gray-900 hover:text-primary"
+                >
+                  {vehicle.brand} {vehicle.model} {vehicle.year}
+                </Link>
+                <p className="text-sm text-gray-500 mt-1">
+                  {formatPrice(vehicle.price)} •{" "}
+                  {vehicle.kilometers.toLocaleString()} km
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <Eye className="h-4 w-4" />
+                  <span>{vehicle.views || 0}</span>
+                </div>
+                {getStatusBadge(vehicle.status)}
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 };

@@ -1,21 +1,14 @@
 "use client";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  vehicleSchema,
-  type VehicleFormValues,
-} from "@/lib/validations/vehicle";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { vehicleSchema, type VehicleFormData } from "@/lib/validations/vehicle";
+import { createVehicle, updateVehicle } from "@/app/admin/vehiculos/actions";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -24,532 +17,424 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { FeaturesEditor } from "./FeaturesEditor";
+import { ImagesEditor } from "./ImagesEditor";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { VehiclePreview } from "./VehiclePreview";
-import {
-  fuelTypeLabels,
-  transmissionLabels,
-  bodyTypeLabels,
-} from "@/lib/utils";
-import { Save, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import type { Vehicle } from "@/lib/types";
-import { FeaturesSection } from "./FeaturesSection";
-import { ImagesSection } from "./ImagesSection";
-import { useVehiclesStore } from "@/lib/store/useVehiclesStore";
-
-// ==============================================
-// FORMULARIO DE VEHÍCULO (COMPLETO)
-// ==============================================
 
 interface VehicleFormProps {
-  initialData?: Vehicle;
-  isEdit?: boolean;
+  vehicle?: Vehicle | null;
+  mode: "create" | "edit";
 }
 
-export const VehicleForm = ({
-  initialData,
-  isEdit = false,
-}: VehicleFormProps) => {
+export const VehicleForm = ({ vehicle, mode }: VehicleFormProps) => {
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addVehicle, updateVehicle } = useVehiclesStore();
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Valores por defecto
-  const defaultValues: Partial<VehicleFormValues> = initialData
-    ? {
-        brand: initialData.brand,
-        model: initialData.model,
-        year: initialData.year,
-        price: initialData.price,
-        kilometers: initialData.kilometers,
-        fuel_type: initialData.fuel_type,
-        transmission: initialData.transmission,
-        color: initialData.color,
-        body_type: initialData.body_type,
-        doors: initialData.doors,
-        description: initialData.description,
-        status: initialData.status,
-        is_featured: initialData.is_featured,
-        features: initialData.features,
-        images: initialData.images,
-      }
-    : {
-        brand: "",
-        model: "",
-        year: new Date().getFullYear(),
-        price: 0,
-        kilometers: 0,
-        fuel_type: "nafta",
-        transmission: "manual",
-        color: "",
-        body_type: "sedan",
-        doors: 4,
-        description: "",
-        status: "available",
-        is_featured: false,
-        features: [],
-        images: [],
-      };
-
-  const form = useForm({
-    resolver: zodResolver(vehicleSchema) as any,
-    defaultValues: defaultValues as any,
-    mode: "onChange",
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<VehicleFormData>({
+    resolver: zodResolver(vehicleSchema),
+    defaultValues: vehicle ?? {
+      brand: "",
+      model: "",
+      year: new Date().getFullYear(),
+      price: 0,
+      kilometers: 0,
+      fuel_type: "nafta",
+      transmission: "manual",
+      color: "",
+      body_type: "sedan",
+      doors: 4,
+      description: "",
+      features: [],
+      images: [],
+      is_featured: false,
+      status: "available",
+    },
   });
 
-  const watchedValues = form.watch();
-
-  const onSubmit = async (data: any) => {
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: VehicleFormData) => {
+    setIsLoading(true);
     try {
-      if (isEdit && initialData) {
-        // Actualizar vehículo existente
-        updateVehicle(initialData.id, data);
+      const formData = new FormData();
 
-        toast.success("Vehículo actualizado", {
-          description: `${data.brand} ${data.model} fue actualizado correctamente`,
-        });
-      } else {
-        // Crear nuevo vehículo
-        addVehicle(data);
+      Object.entries(data).forEach(([key, value]) => {
+        formData.append(
+          key,
+          typeof value === "object" ? JSON.stringify(value) : String(value)
+        );
+      });
 
-        toast.success("Vehículo creado", {
-          description: `${data.brand} ${data.model} fue agregado al inventario`,
-        });
+      const result =
+        mode === "create"
+          ? await createVehicle(formData)
+          : await updateVehicle(vehicle!.id, formData);
+
+      if (result?.error) {
+        toast.error("Error", { description: result.error });
+        return;
       }
 
-      // Simular delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Redirigir a listado
-      router.push("/admin/vehiculos");
-    } catch (error) {
-      console.error("Error al guardar:", error);
-
-      toast.error("Error al guardar", {
+      toast.success("Exito", {
         description:
-          "Ocurrió un error al guardar el vehículo. Intenta nuevamente.",
+          mode === "create"
+            ? "Vehiculo creado correctamente"
+            : "Vehiculo actualizado correctamente",
       });
+
+      router.push("/admin/vehiculos");
+      router.refresh();
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="grid lg:grid-cols-3 gap-6">
-      {/* FORMULARIO - 2 columnas */}
-      <div className="lg:col-span-2">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* INFORMACIÓN BÁSICA */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Básica</CardTitle>
-                <CardDescription>
-                  Datos principales del vehículo
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Marca y Modelo */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="brand"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Marca *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Toyota" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="model"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Modelo *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Corolla" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Año y Precio */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="year"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Año *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="2023"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Precio *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="15000000"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Precio en pesos argentinos
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Kilómetros y Color */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="kilometers"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Kilómetros *</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="50000"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="color"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Color *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Blanco" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* DETALLES TÉCNICOS */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Detalles Técnicos</CardTitle>
-                <CardDescription>Especificaciones del vehículo</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Combustible y Transmisión */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="fuel_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Combustible *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona el combustible" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(fuelTypeLabels).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              )
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="transmission"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Transmisión *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona la transmisión" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(transmissionLabels).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              )
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Carrocería y Puertas */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="body_type"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Carrocería *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona el tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {Object.entries(bodyTypeLabels).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              )
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="doors"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Puertas *</FormLabel>
-                        <Select
-                          onValueChange={(value) =>
-                            field.onChange(parseInt(value))
-                          }
-                          defaultValue={field.value?.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Cantidad de puertas" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="2">2 puertas</SelectItem>
-                            <SelectItem value="3">3 puertas</SelectItem>
-                            <SelectItem value="4">4 puertas</SelectItem>
-                            <SelectItem value="5">5 puertas</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* DESCRIPCIÓN */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Descripción</CardTitle>
-                <CardDescription>
-                  Describe el vehículo en detalle
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Descripción *</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe el estado, equipamiento y características del vehículo..."
-                          className="min-h-32 resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        {field.value?.length || 0} / 1000 caracteres (mínimo 50)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* CARACTERÍSTICAS */}
-            <FeaturesSection form={form} />
-
-            {/* IMÁGENES */}
-            <ImagesSection form={form} />
-
-            {/* ESTADO Y CONFIGURACIÓN */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Estado y Configuración</CardTitle>
-                <CardDescription>
-                  Configura la visibilidad del vehículo
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Estado */}
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecciona el estado" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="available">Disponible</SelectItem>
-                          <SelectItem value="reserved">Reservado</SelectItem>
-                          <SelectItem value="sold">Vendido</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Separator />
-
-                {/* Destacado */}
-                <FormField
-                  control={form.control}
-                  name="is_featured"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-base">
-                          Vehículo Destacado
-                        </FormLabel>
-                        <FormDescription>
-                          Se mostrará en la página principal del catálogo
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
-
-            {/* BOTONES DE ACCIÓN */}
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Cancelar
-              </Button>
-
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {isEdit ? "Actualizar" : "Crear"} Vehículo
-                  </>
-                )}
-              </Button>
+    <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* Información Básica */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Informacion Basica</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="brand">Marca *</Label>
+              <Input
+                id="brand"
+                {...register("brand")}
+                placeholder="Toyota, Ford"
+              />
+              {errors.brand && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.brand.message}
+                </p>
+              )}
             </div>
-          </form>
-        </Form>
-      </div>
+            <div>
+              <Label htmlFor="model">Modelo *</Label>
+              <Input
+                id="model"
+                {...register("model")}
+                placeholder="Corolla, Ranger"
+              />
+              {errors.model && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.model.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="year">Año *</Label>
+              <Input
+                id="year"
+                type="number"
+                {...register("year", { valueAsNumber: true })}
+              />
+              {errors.year && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.year.message}
+                </p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="color">Color *</Label>
+              <Input
+                id="color"
+                {...register("color")}
+                placeholder="Blanco, Negro"
+              />
+              {errors.color && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.color.message}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* VISTA PREVIA - 1 columna */}
-      <div className="lg:col-span-1">
-        <VehiclePreview data={watchedValues} />
-      </div>
+        {/* Detalles Técnicos */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Detalles Tecnicos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="price">Precio (ARS) *</Label>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  {...register("price", { valueAsNumber: true })}
+                  placeholder="5000000"
+                />
+                {errors.price && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.price.message}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="kilometers">Kilometros *</Label>
+                <Input
+                  id="kilometers"
+                  type="number"
+                  {...register("kilometers", { valueAsNumber: true })}
+                  placeholder="50000"
+                />
+                {errors.kilometers && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors.kilometers.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <Label>Combustible *</Label>
+                <Controller
+                  name="fuel_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nafta">Nafta</SelectItem>
+                        <SelectItem value="diesel">Diesel</SelectItem>
+                        <SelectItem value="gnc">GNC</SelectItem>
+                        <SelectItem value="electrico">Electrico</SelectItem>
+                        <SelectItem value="hibrido">Hibrido</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              <div>
+                <Label>Transmision *</Label>
+                <Controller
+                  name="transmission"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="manual">Manual</SelectItem>
+                        <SelectItem value="automatica">Automatica</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              <div>
+                <Label>Carroceria *</Label>
+                <Controller
+                  name="body_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sedan">Sedan</SelectItem>
+                        <SelectItem value="suv">SUV</SelectItem>
+                        <SelectItem value="hatchback">Hatchback</SelectItem>
+                        <SelectItem value="pickup">Pickup</SelectItem>
+                        <SelectItem value="coupe">Coupe</SelectItem>
+                        <SelectItem value="familiar">Familiar</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              <div>
+                <Label>Puertas *</Label>
+                <Controller
+                  name="doors"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      onValueChange={(v) => field.onChange(parseInt(v))}
+                      defaultValue={field.value.toString()}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">2 puertas</SelectItem>
+                        <SelectItem value="3">3 puertas</SelectItem>
+                        <SelectItem value="4">4 puertas</SelectItem>
+                        <SelectItem value="5">5 puertas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Descripcion *</Label>
+              <Textarea
+                id="description"
+                {...register("description")}
+                rows={4}
+                placeholder="Describe el vehiculo..."
+              />
+              {errors.description && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.description.message}
+                </p>
+              )}
+              <p className="text-sm text-gray-500 mt-1">
+                {watch("description")?.length || 0} caracteres
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Características */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Caracteristicas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeaturesEditor
+              features={watch("features")}
+              onChange={(f) => setValue("features", f)}
+            />
+            {errors.features && (
+              <p className="text-sm text-red-600 mt-2">
+                {errors.features.message}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Imágenes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Imagenes del Vehiculo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ImagesEditor
+              images={watch("images")}
+              onChange={(i) => setValue("images", i)}
+            />
+            {errors.images && (
+              <p className="text-sm text-red-600 mt-2">
+                {errors.images.message}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Estado y Opciones */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Estado y Opciones</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label>Estado *</Label>
+              <Controller
+                name="status"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Disponible</SelectItem>
+                      <SelectItem value="reserved">Reservado</SelectItem>
+                      <SelectItem value="sold">Vendido</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.status && (
+                <p className="text-sm text-red-600 mt-1">
+                  {errors.status.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg">
+              <div>
+                <Label className="text-base font-medium">
+                  Vehiculo Destacado
+                </Label>
+                <p className="text-sm text-gray-500">
+                  Aparecera en la pagina principal
+                </p>
+              </div>
+              <Controller
+                name="is_featured"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Botones */}
+        <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full sm:w-auto"
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading
+              ? "Guardando..."
+              : mode === "create"
+              ? "Crear Vehiculo"
+              : "Guardar Cambios"}
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

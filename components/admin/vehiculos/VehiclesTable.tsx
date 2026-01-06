@@ -8,16 +8,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { VehicleActions } from "./VehicleActions";
-import {
-  formatPrice,
-  formatKilometers,
-  statusLabels,
-  statusColors,
-} from "@/lib/utils";
+import { DeleteButton } from "./DeleteButton";
+import { StatusButton } from "./StatusButton";
+import { formatPrice, formatKilometers } from "@/lib/utils";
 import type { Vehicle } from "@/lib/types";
 import Image from "next/image";
+import Link from "next/link";
+import { Eye, Edit, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // ==============================================
 // TABLA DE VEHÍCULOS
@@ -28,6 +29,19 @@ interface VehiclesTableProps {
 }
 
 export const VehiclesTable = ({ vehicles }: VehiclesTableProps) => {
+  const router = useRouter();
+
+  const handleDuplicate = (vehicle: Vehicle) => {
+    const { id, views, ...vehicleCopy } = vehicle;
+    localStorage.setItem("duplicateVehicle", JSON.stringify(vehicleCopy));
+    toast.success("Vehículo copiado", {
+      description: "Redirigiendo al formulario...",
+    });
+    setTimeout(() => {
+      router.push("/admin/vehiculos/nuevo");
+    }, 500);
+  };
+
   return (
     <div className="border rounded-lg overflow-hidden">
       <Table>
@@ -93,9 +107,11 @@ export const VehiclesTable = ({ vehicles }: VehiclesTableProps) => {
 
                 {/* Estado */}
                 <TableCell>
-                  <Badge className={statusColors[vehicle.status]}>
-                    {statusLabels[vehicle.status]}
-                  </Badge>
+                  <StatusButton
+                    vehicleId={vehicle.id}
+                    vehicleName={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`}
+                    currentStatus={vehicle.status}
+                  />
                 </TableCell>
 
                 {/* Visitas */}
@@ -103,7 +119,37 @@ export const VehiclesTable = ({ vehicles }: VehiclesTableProps) => {
 
                 {/* Acciones */}
                 <TableCell className="text-right">
-                  <VehicleActions vehicle={vehicle} />
+                  <div className="flex items-center justify-end gap-2">
+                    {/* Ver en sitio */}
+                    <Link href={`/vehiculos/${vehicle.id}`} target="_blank">
+                      <Button size="sm" variant="ghost" title="Ver en sitio">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </Link>
+
+                    {/* Editar */}
+                    <Link href={`/admin/vehiculos/${vehicle.id}/editar`}>
+                      <Button size="sm" variant="ghost" title="Editar">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </Link>
+
+                    {/* Duplicar */}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDuplicate(vehicle)}
+                      title="Duplicar"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+
+                    {/* Eliminar */}
+                    <DeleteButton
+                      vehicleId={vehicle.id}
+                      vehicleName={`${vehicle.brand} ${vehicle.model} ${vehicle.year}`}
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ))

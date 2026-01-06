@@ -1,94 +1,39 @@
 import { z } from "zod";
 
 // ==============================================
-// SCHEMAS DE VALIDACIÓN CON ZOD
+// SCHEMA DE VALIDACIÓN PARA VEHÍCULOS
 // ==============================================
 
 export const vehicleSchema = z.object({
-  // Información básica
-  brand: z
-    .string()
-    .min(2, "La marca debe tener al menos 2 caracteres")
-    .max(50, "La marca no puede superar 50 caracteres"),
-
-  model: z
-    .string()
-    .min(1, "El modelo es requerido")
-    .max(100, "El modelo no puede superar 100 caracteres"),
-
+  brand: z.string().min(1, "La marca es requerida"),
+  model: z.string().min(1, "El modelo es requerido"),
   year: z
     .number()
-    .int("El año debe ser un número entero")
-    .min(1990, "El año mínimo es 1990")
-    .max(new Date().getFullYear() + 1, "El año no puede ser futuro"),
-
-  price: z
-    .number()
-    .positive("El precio debe ser positivo")
-    .min(100000, "El precio mínimo es $100.000")
-    .max(100000000, "El precio máximo es $100.000.000"),
-
-  // Detalles técnicos
-  kilometers: z
-    .number()
-    .int("Los kilómetros deben ser un número entero")
-    .min(0, "Los kilómetros no pueden ser negativos")
-    .max(1000000, "Los kilómetros no pueden superar 1.000.000"),
-
-  fuel_type: z
-    .string()
-    .refine(
-      (val) => ["nafta", "diesel", "gnc", "electrico", "hibrido"].includes(val),
-      { message: "El tipo de combustible es requerido" }
-    ),
-
-  transmission: z
-    .string()
-    .refine((val) => ["manual", "automatica"].includes(val), {
-      message: "El tipo de transmisión es requerido",
-    }),
-
-  color: z
-    .string()
-    .min(2, "El color debe tener al menos 2 caracteres")
-    .max(30, "El color no puede superar 30 caracteres"),
-
-  body_type: z
-    .string()
-    .refine(
-      (val) =>
-        ["sedan", "suv", "hatchback", "pickup", "coupe", "familiar"].includes(
-          val
-        ),
-      { message: "El tipo de carrocería es requerido" }
-    ),
-
-  doors: z
-    .number()
-    .int("Las puertas deben ser un número entero")
-    .min(2, "Mínimo 2 puertas")
-    .max(5, "Máximo 5 puertas"),
-
-  // Descripción
+    .min(1900, "Año inválido")
+    .max(new Date().getFullYear() + 1, "Año inválido"),
+  price: z.number().min(0, "El precio debe ser mayor a 0"),
+  kilometers: z.number().min(0, "Los kilómetros deben ser mayores a 0"),
+  fuel_type: z.enum(["nafta", "diesel", "gnc", "electrico", "hibrido"]),
+  transmission: z.enum(["manual", "automatica"]),
+  color: z.string().min(1, "El color es requerido"),
+  body_type: z.enum([
+    "sedan",
+    "suv",
+    "hatchback",
+    "pickup",
+    "coupe",
+    "familiar",
+  ]),
+  doors: z.number().min(2).max(5),
   description: z
     .string()
-    .min(50, "La descripción debe tener al menos 50 caracteres")
-    .max(1000, "La descripción no puede superar 1000 caracteres"),
-
-  // Estado y destacado
-  status: z
-    .string()
-    .refine((val) => ["available", "sold", "reserved"].includes(val), {
-      message: "El estado es requerido",
-    }),
-
+    .min(10, "La descripción debe tener al menos 10 caracteres"),
+  features: z
+    .array(z.string())
+    .min(1, "Debe agregar al menos una característica"),
+  images: z.array(z.string().url()).min(1, "Debe agregar al menos una imagen"),
   is_featured: z.boolean().default(false),
-
-  // Features (lo haremos en DÍA 12)
-  features: z.array(z.string()).default([]),
-
-  // Imágenes (lo haremos en DÍA 12)
-  images: z.array(z.string()).min(1, "Debe tener al menos 1 imagen"),
+  status: z.enum(["available", "sold", "reserved"]).default("available"),
 });
 
-export type VehicleFormValues = z.infer<typeof vehicleSchema>;
+export type VehicleFormData = z.infer<typeof vehicleSchema>;

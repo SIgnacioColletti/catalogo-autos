@@ -1,35 +1,28 @@
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ArrowLeft } from "lucide-react";
-
-// ==============================================
-// PÁGINA 404 PARA VEHÍCULOS NO ENCONTRADOS
-// ==============================================
+import { Car } from "lucide-react";
+import Link from "next/link";
 
 export default function VehicleNotFound() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <div className="text-center max-w-md">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
-          <AlertCircle className="w-10 h-10 text-red-600" />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="mb-6">
+          <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+            <Car className="h-8 w-8 text-gray-600" />
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-4">
+
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
           Vehículo no encontrado
         </h1>
+
         <p className="text-gray-600 mb-6">
-          El vehículo que buscás no existe o fue dado de baja.
+          El vehículo que buscas no existe, fue vendido o ya no está disponible.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <Button asChild>
-            <Link href="/vehiculos">Ver Todos los Vehículos</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al Inicio
-            </Link>
-          </Button>
-        </div>
+
+        <Link href="/vehiculos">
+          <Button>Ver todos los vehículos</Button>
+        </Link>
       </div>
     </div>
   );

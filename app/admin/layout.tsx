@@ -1,35 +1,38 @@
-import { ProtectedRoute } from "@/components/admin/ProtectedRoute";
+"use client";
+
+import { useState } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Toaster } from "@/components/ui/sonner";
-
-// ==============================================
-// LAYOUT DEL PANEL ADMIN
-// ==============================================
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
-    <ProtectedRoute>
-      <div className="flex h-screen overflow-hidden">
-        {/* Sidebar - Solo desktop */}
-        <aside className="hidden lg:block w-64 border-r">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
+      <aside className="hidden lg:block w-64 border-r bg-white">
+        <AdminSidebar />
+      </aside>
+
+      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <SheetContent side="left" className="p-0 w-64">
           <AdminSidebar />
-        </aside>
+        </SheetContent>
+      </Sheet>
 
-        {/* Contenido principal */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <AdminHeader />
-
-          <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
-        </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <AdminHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          {children}
+        </main>
       </div>
 
-      {/* Toaster para notificaciones */}
       <Toaster position="top-right" richColors />
-    </ProtectedRoute>
+    </div>
   );
 }

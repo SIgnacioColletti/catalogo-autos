@@ -1,81 +1,70 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { AdminSidebar } from "./AdminSidebar";
-import { getCurrentUser } from "@/lib/auth";
+import { Menu, Home } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getCurrentUser } from "@/lib/supabase/auth";
 
 // ==============================================
-// HEADER DEL ADMIN (con menú mobile)
+// HEADER ADMIN
 // ==============================================
 
-export const AdminHeader = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const user = getCurrentUser();
+interface AdminHeaderProps {
+  onMenuClick: () => void;
+}
+
+export const AdminHeader = ({ onMenuClick }: AdminHeaderProps) => {
+  const [userEmail, setUserEmail] = useState<string>("");
 
   useEffect(() => {
-    setIsMounted(true);
+    const loadUser = async () => {
+      const user = await getCurrentUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+      }
+    };
+    loadUser();
   }, []);
 
-  if (!isMounted) {
-    return (
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Button variant="ghost" size="icon" className="lg:hidden" disabled>
-            <Menu className="h-6 w-6" />
-          </Button>
-          <div className="hidden lg:block">
-            <h1 className="text-xl font-bold text-gray-900">
-              Panel de Administración
-            </h1>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
   return (
-    <>
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMobileMenuOpen(true)}
-            className="lg:hidden"
+    <header className="bg-white border-b px-6 py-4 sticky top-0 z-40">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Botón menú móvil */}
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <Menu className="h-6 w-6" />
-          </Button>
+          </button>
 
-          <div className="hidden lg:block">
-            <h1 className="text-xl font-bold text-gray-900">
-              Panel de Administración
-            </h1>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
-            </div>
-            <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-bold">
-              {user?.name.charAt(0)}
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Administración</h1>
+            <p className="text-sm text-gray-500">
+              Gestiona tu inventario de vehículos
+            </p>
           </div>
         </div>
-      </header>
 
-      <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-64">
-          <AdminSidebar onClose={() => setIsMobileMenuOpen(false)} />
-        </SheetContent>
-      </Sheet>
-    </>
+        {/* Info del usuario y botón */}
+        <div className="flex items-center gap-3">
+          {userEmail && (
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-medium text-gray-900">{userEmail}</p>
+              <p className="text-xs text-gray-500">Administrador</p>
+            </div>
+          )}
+
+          {/* Botón Volver al Catálogo */}
+          <Button asChild variant="outline" size="sm">
+            <Link href="/" target="_blank">
+              <Home className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Ver Catálogo</span>
+            </Link>
+          </Button>
+        </div>
+      </div>
+    </header>
   );
 };
