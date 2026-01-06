@@ -14,8 +14,8 @@ export default function AdminLayout({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <aside className="hidden lg:block w-64 border-r bg-white">
+    <div className="flex min-h-screen bg-gray-50">
+      <aside className="hidden lg:block w-64 border-r bg-white fixed h-screen">
         <AdminSidebar />
       </aside>
 
@@ -25,11 +25,9 @@ export default function AdminLayout({
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:ml-64">
         <AdminHeader onMenuClick={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
 
       <Toaster position="top-right" richColors />

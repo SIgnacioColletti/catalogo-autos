@@ -94,16 +94,14 @@ export const AdminSidebar = () => {
       {/* Botones inferiores */}
       <div className="mt-auto pt-6 border-t space-y-2">
         {/* Botón Volver al Catálogo */}
-        <Button
-          asChild
-          variant="ghost"
-          className="w-full justify-start text-gray-300 hover:text-white hover:bg-gray-700"
+        <Link
+          href="/"
+          target="_blank"
+          className="flex items-center gap-3 px-3 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         >
-          <Link href="/">
-            <Home className="mr-3 h-5 w-5" />
-            Ver Catálogo Público
-          </Link>
-        </Button>
+          <Home className="h-5 w-5" />
+          <span className="font-medium">Ver Catálogo Público</span>
+        </Link>
 
         {/* Botón Logout */}
         <Button
