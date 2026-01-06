@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
-import { useFilterStore } from "@/lib/store/useFilterStore";
 import {
   formatPrice,
   formatKilometers,
@@ -16,70 +16,74 @@ import {
   bodyTypeLabels,
 } from "@/lib/utils";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
-import type { Vehicle } from "@/lib/types";
-
-// ==============================================
-// SIDEBAR DE FILTROS
-// ==============================================
 
 interface FilterSidebarProps {
-  vehicles: Vehicle[];
+  uniqueBrands: string[];
 }
 
-export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
-  const filters = useFilterStore();
+export const FilterSidebar = ({ uniqueBrands }: FilterSidebarProps) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  // Estados locales para collapsar secciones
+  // Estados de secciones colapsables
   const [showBrandFilter, setShowBrandFilter] = useState(true);
-  const [showYearFilter, setShowYearFilter] = useState(true);
+  const [showYearFilter, setShowYearFilter] = useState(false);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [showKilometersFilter, setShowKilometersFilter] = useState(false);
   const [showFuelFilter, setShowFuelFilter] = useState(false);
   const [showTransmissionFilter, setShowTransmissionFilter] = useState(false);
   const [showBodyTypeFilter, setShowBodyTypeFilter] = useState(false);
 
-  // Obtener marcas únicas
-  const uniqueBrands = useMemo(() => {
-    const brands = [...new Set(vehicles.map((v) => v.brand))];
-    return brands.sort();
-  }, [vehicles]);
+  // Leer estado actual de la URL
+  const selectedBrands = searchParams.get("brands")?.split(",") || [];
+  const yearFrom = parseInt(searchParams.get("yearFrom") || "2015");
+  const yearTo = parseInt(searchParams.get("yearTo") || "2024");
+  const priceFrom = parseInt(searchParams.get("priceFrom") || "5000000");
+  const priceTo = parseInt(searchParams.get("priceTo") || "42000000");
+  const kilometersFrom = parseInt(searchParams.get("kilometersFrom") || "0");
+  const kilometersTo = parseInt(searchParams.get("kilometersTo") || "300000");
+  const selectedFuelTypes = searchParams.get("fuelTypes")?.split(",") || [];
+  const selectedTransmissions =
+    searchParams.get("transmissions")?.split(",") || [];
+  const selectedBodyTypes = searchParams.get("bodyTypes")?.split(",") || [];
 
-  // Contar vehículos por marca
-  const brandCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    vehicles.forEach((v) => {
-      counts[v.brand] = (counts[v.brand] || 0) + 1;
+  const updateFilters = (newParams: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
     });
-    return counts;
-  }, [vehicles]);
 
-  // Verificar si hay filtros activos
-  const hasActiveFilters =
-    filters.search ||
-    filters.brands.length > 0 ||
-    filters.yearFrom !== null ||
-    filters.yearTo !== null ||
-    filters.priceFrom !== null ||
-    filters.priceTo !== null ||
-    filters.kilometersFrom !== null ||
-    filters.kilometersTo !== null ||
-    filters.fuelTypes.length > 0 ||
-    filters.transmissions.length > 0 ||
-    filters.bodyTypes.length > 0;
-
-  const handleClearFilters = () => {
-    filters.clearFilters();
+    params.delete("page"); // Reset página
+    router.push(`/vehiculos?${params.toString()}`);
   };
 
-  // Componente reutilizable para header de sección
+  const handleBrandToggle = (brand: string) => {
+    const newBrands = selectedBrands.includes(brand)
+      ? selectedBrands.filter((b) => b !== brand)
+      : [...selectedBrands, brand];
+
+    updateFilters({
+      brands: newBrands.length > 0 ? newBrands.join(",") : null,
+    });
+  };
+
+  const handleClearFilters = () => {
+    router.push("/vehiculos");
+  };
+
+  const hasActiveFilters = searchParams.toString() !== "";
+
   const SectionHeader = ({
     title,
-    section,
     expanded,
     onToggle,
   }: {
     title: string;
-    section: string;
     expanded: boolean;
     onToggle: () => void;
   }) => (
@@ -115,64 +119,56 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
         </div>
       </CardHeader>
       <CardContent className="px-0 pb-0 space-y-6">
-        {/* FILTRO: MARCAS */}
+        {/* MARCAS */}
         <div>
           <SectionHeader
             title="Marca"
-            section="brands"
             expanded={showBrandFilter}
             onToggle={() => setShowBrandFilter(!showBrandFilter)}
           />
           {showBrandFilter && (
             <div className="space-y-2 max-h-48 overflow-y-auto mt-2">
-              {uniqueBrands.map((brand) => {
-                const count = brandCounts[brand] || 0;
-                const isChecked = filters.brands.includes(brand);
-
-                return (
-                  <div key={brand} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`brand-${brand}`}
-                      checked={isChecked}
-                      onCheckedChange={() => filters.toggleBrand(brand)}
-                    />
-                    <Label
-                      htmlFor={`brand-${brand}`}
-                      className="flex-1 cursor-pointer text-sm font-normal"
-                    >
-                      {brand} ({count})
-                    </Label>
-                  </div>
-                );
-              })}
+              {uniqueBrands.map((brand) => (
+                <div key={brand} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`brand-${brand}`}
+                    checked={selectedBrands.includes(brand)}
+                    onCheckedChange={() => handleBrandToggle(brand)}
+                  />
+                  <Label
+                    htmlFor={`brand-${brand}`}
+                    className="flex-1 cursor-pointer text-sm font-normal"
+                  >
+                    {brand}
+                  </Label>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         <Separator />
 
-        {/* FILTRO: AÑO */}
+        {/* AÑO */}
         <div>
           <SectionHeader
             title="Año"
-            section="year"
             expanded={showYearFilter}
             onToggle={() => setShowYearFilter(!showYearFilter)}
           />
           {showYearFilter && (
             <div className="mt-4 space-y-4">
               <div className="flex justify-between text-sm text-gray-600">
-                <span>{filters.yearFrom ?? 2010}</span>
-                <span>{filters.yearTo ?? 2024}</span>
+                <span>{yearFrom}</span>
+                <span>{yearTo}</span>
               </div>
-
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-gray-500">Desde</Label>
                   <Slider
-                    value={[filters.yearFrom ?? 2015]}
-                    onValueChange={(value) =>
-                      filters.setYearRange(value[0], filters.yearTo)
+                    value={[yearFrom]}
+                    onValueChange={([value]) =>
+                      updateFilters({ yearFrom: value.toString() })
                     }
                     min={2015}
                     max={2024}
@@ -183,9 +179,9 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
                 <div>
                   <Label className="text-xs text-gray-500">Hasta</Label>
                   <Slider
-                    value={[filters.yearTo ?? 2024]}
-                    onValueChange={(value) =>
-                      filters.setYearRange(filters.yearFrom, value[0])
+                    value={[yearTo]}
+                    onValueChange={([value]) =>
+                      updateFilters({ yearTo: value.toString() })
                     }
                     min={2015}
                     max={2024}
@@ -200,28 +196,26 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* FILTRO: PRECIO */}
+        {/* PRECIO */}
         <div>
           <SectionHeader
             title="Precio"
-            section="price"
             expanded={showPriceFilter}
             onToggle={() => setShowPriceFilter(!showPriceFilter)}
           />
           {showPriceFilter && (
             <div className="mt-4 space-y-4">
               <div className="flex justify-between text-sm text-gray-600">
-                <span>{formatPrice(filters.priceFrom ?? 5000000)}</span>
-                <span>{formatPrice(filters.priceTo ?? 42000000)}</span>
+                <span>{formatPrice(priceFrom)}</span>
+                <span>{formatPrice(priceTo)}</span>
               </div>
-
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-gray-500">Desde</Label>
                   <Slider
-                    value={[filters.priceFrom ?? 5000000]}
-                    onValueChange={(value) =>
-                      filters.setPriceRange(value[0], filters.priceTo)
+                    value={[priceFrom]}
+                    onValueChange={([value]) =>
+                      updateFilters({ priceFrom: value.toString() })
                     }
                     min={5000000}
                     max={42000000}
@@ -232,9 +226,9 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
                 <div>
                   <Label className="text-xs text-gray-500">Hasta</Label>
                   <Slider
-                    value={[filters.priceTo ?? 42000000]}
-                    onValueChange={(value) =>
-                      filters.setPriceRange(filters.priceFrom, value[0])
+                    value={[priceTo]}
+                    onValueChange={([value]) =>
+                      updateFilters({ priceTo: value.toString() })
                     }
                     min={5000000}
                     max={42000000}
@@ -249,28 +243,26 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* FILTRO: KILÓMETROS */}
+        {/* KILÓMETROS */}
         <div>
           <SectionHeader
             title="Kilómetros"
-            section="kilometers"
             expanded={showKilometersFilter}
             onToggle={() => setShowKilometersFilter(!showKilometersFilter)}
           />
           {showKilometersFilter && (
             <div className="mt-4 space-y-4">
               <div className="flex justify-between text-sm text-gray-600">
-                <span>{formatKilometers(filters.kilometersFrom ?? 0)}</span>
-                <span>{formatKilometers(filters.kilometersTo ?? 300000)}</span>
+                <span>{formatKilometers(kilometersFrom)}</span>
+                <span>{formatKilometers(kilometersTo)}</span>
               </div>
-
               <div className="space-y-3">
                 <div>
                   <Label className="text-xs text-gray-500">Desde</Label>
                   <Slider
-                    value={[filters.kilometersFrom ?? 0]}
-                    onValueChange={(value) =>
-                      filters.setKilometersRange(value[0], filters.kilometersTo)
+                    value={[kilometersFrom]}
+                    onValueChange={([value]) =>
+                      updateFilters({ kilometersFrom: value.toString() })
                     }
                     min={0}
                     max={300000}
@@ -281,12 +273,9 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
                 <div>
                   <Label className="text-xs text-gray-500">Hasta</Label>
                   <Slider
-                    value={[filters.kilometersTo ?? 300000]}
-                    onValueChange={(value) =>
-                      filters.setKilometersRange(
-                        filters.kilometersFrom,
-                        value[0]
-                      )
+                    value={[kilometersTo]}
+                    onValueChange={([value]) =>
+                      updateFilters({ kilometersTo: value.toString() })
                     }
                     min={0}
                     max={300000}
@@ -301,25 +290,31 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* FILTRO: COMBUSTIBLE */}
+        {/* COMBUSTIBLE */}
         <div>
           <SectionHeader
             title="Combustible"
-            section="fuel"
             expanded={showFuelFilter}
             onToggle={() => setShowFuelFilter(!showFuelFilter)}
           />
           {showFuelFilter && (
             <div className="space-y-2 mt-2">
               {Object.entries(fuelTypeLabels).map(([value, label]) => {
-                const isChecked = filters.fuelTypes.includes(value);
-
+                const isChecked = selectedFuelTypes.includes(value);
                 return (
                   <div key={value} className="flex items-center space-x-2">
                     <Checkbox
                       id={`fuel-${value}`}
                       checked={isChecked}
-                      onCheckedChange={() => filters.toggleFuelType(value)}
+                      onCheckedChange={() => {
+                        const newTypes = isChecked
+                          ? selectedFuelTypes.filter((t) => t !== value)
+                          : [...selectedFuelTypes, value];
+                        updateFilters({
+                          fuelTypes:
+                            newTypes.length > 0 ? newTypes.join(",") : null,
+                        });
+                      }}
                     />
                     <Label
                       htmlFor={`fuel-${value}`}
@@ -336,25 +331,31 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* FILTRO: TRANSMISIÓN */}
+        {/* TRANSMISIÓN */}
         <div>
           <SectionHeader
             title="Transmisión"
-            section="transmission"
             expanded={showTransmissionFilter}
             onToggle={() => setShowTransmissionFilter(!showTransmissionFilter)}
           />
           {showTransmissionFilter && (
             <div className="space-y-2 mt-2">
               {Object.entries(transmissionLabels).map(([value, label]) => {
-                const isChecked = filters.transmissions.includes(value);
-
+                const isChecked = selectedTransmissions.includes(value);
                 return (
                   <div key={value} className="flex items-center space-x-2">
                     <Checkbox
                       id={`transmission-${value}`}
                       checked={isChecked}
-                      onCheckedChange={() => filters.toggleTransmission(value)}
+                      onCheckedChange={() => {
+                        const newTypes = isChecked
+                          ? selectedTransmissions.filter((t) => t !== value)
+                          : [...selectedTransmissions, value];
+                        updateFilters({
+                          transmissions:
+                            newTypes.length > 0 ? newTypes.join(",") : null,
+                        });
+                      }}
                     />
                     <Label
                       htmlFor={`transmission-${value}`}
@@ -371,25 +372,31 @@ export const FilterSidebar = ({ vehicles }: FilterSidebarProps) => {
 
         <Separator />
 
-        {/* FILTRO: CARROCERÍA */}
+        {/* CARROCERÍA */}
         <div>
           <SectionHeader
             title="Tipo de Carrocería"
-            section="bodyType"
             expanded={showBodyTypeFilter}
             onToggle={() => setShowBodyTypeFilter(!showBodyTypeFilter)}
           />
           {showBodyTypeFilter && (
             <div className="space-y-2 mt-2">
               {Object.entries(bodyTypeLabels).map(([value, label]) => {
-                const isChecked = filters.bodyTypes.includes(value);
-
+                const isChecked = selectedBodyTypes.includes(value);
                 return (
                   <div key={value} className="flex items-center space-x-2">
                     <Checkbox
                       id={`body-${value}`}
                       checked={isChecked}
-                      onCheckedChange={() => filters.toggleBodyType(value)}
+                      onCheckedChange={() => {
+                        const newTypes = isChecked
+                          ? selectedBodyTypes.filter((t) => t !== value)
+                          : [...selectedBodyTypes, value];
+                        updateFilters({
+                          bodyTypes:
+                            newTypes.length > 0 ? newTypes.join(",") : null,
+                        });
+                      }}
                     />
                     <Label
                       htmlFor={`body-${value}`}

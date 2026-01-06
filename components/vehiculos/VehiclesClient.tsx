@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleGrid } from "@/components/vehiculos/VehicleGrid";
-import { FilterSidebarClient } from "@/components/vehiculos/FilterSidebarClient";
+import { FilterSidebar } from "@/components/vehiculos/FilterSidebar";
 import { SearchBarClient } from "@/components/vehiculos/SearchBarClient";
 import { MobileFiltersClient } from "@/components/vehiculos/MobileFiltersClient";
 import {
@@ -14,10 +14,6 @@ import {
 } from "@/components/ui/select";
 import type { Vehicle } from "@/lib/types";
 import type { VehicleSortBy } from "@/lib/supabase/queries";
-
-// ==============================================
-// CLIENT COMPONENT PARA FILTROS
-// ==============================================
 
 interface VehiclesClientProps {
   initialVehicles: Vehicle[];
@@ -38,7 +34,7 @@ export const VehiclesClient = ({
   const handleSortChange = (value: VehicleSortBy) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("sortBy", value);
-    params.delete("page"); // Reset a página 1
+    params.delete("page");
     router.push(`/vehiculos?${params.toString()}`);
   };
 
@@ -53,29 +49,6 @@ export const VehiclesClient = ({
     router.push(`/vehiculos?${params.toString()}`);
   };
 
-  const handleFilterChange = (filters: Record<string, any>) => {
-    const params = new URLSearchParams();
-
-    // Agregar cada filtro a los params
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        if (Array.isArray(value) && value.length > 0) {
-          params.set(key, value.join(","));
-        } else if (!Array.isArray(value)) {
-          params.set(key, value.toString());
-        }
-      }
-    });
-
-    // Mantener sortBy si existe
-    if (sortBy) {
-      params.set("sortBy", sortBy);
-    }
-
-    router.push(`/vehiculos?${params.toString()}`);
-  };
-
-  // Verificar si hay filtros activos
   const hasActiveFilters =
     searchParams.get("search") ||
     searchParams.get("brands") ||
@@ -102,7 +75,7 @@ export const VehiclesClient = ({
         <div className="lg:hidden">
           <MobileFiltersClient
             uniqueBrands={uniqueBrands}
-            onFilterChange={handleFilterChange}
+            onFilterChange={() => {}}
           />
         </div>
       </div>
@@ -110,10 +83,7 @@ export const VehiclesClient = ({
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar de filtros - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <FilterSidebarClient
-            uniqueBrands={uniqueBrands}
-            onFilterChange={handleFilterChange}
-          />
+          <FilterSidebar uniqueBrands={uniqueBrands} />
         </aside>
 
         {/* Contenido principal */}

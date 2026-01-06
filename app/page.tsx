@@ -3,23 +3,43 @@ import { FeaturedVehicles } from "@/components/home/FeaturedVehicles";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
+import {
+  getFeaturedVehicles,
+  getAgency,
+  getTotalVehiclesCount,
+} from "@/lib/supabase/queries";
 import { mockAgency } from "@/lib/data/agency";
-import { mockVehicles } from "@/lib/data/vehicles";
 
-export default function HomePage() {
-  const featuredVehicles = mockVehicles.filter(
-    (v) => v.is_featured && v.status === "available"
-  );
+// Revalidar cada 5 minutos
+export const revalidate = 300;
+
+// Metadata
+export const metadata = {
+  title: "AutoMax Rosario - Vehículos Usados de Calidad",
+  description:
+    "Encuentra tu próximo vehículo en AutoMax Rosario. Vehículos usados seleccionados con calidad garantizada.",
+};
+
+export default async function HomePage() {
+  // Obtener datos de Supabase
+  const [featuredVehicles, agency, totalVehicles] = await Promise.all([
+    getFeaturedVehicles(6),
+    getAgency("automax-rosario"),
+    getTotalVehiclesCount(),
+  ]);
+
+  // Fallback a datos mock si no hay agencia
+  const agencyData = agency || mockAgency;
 
   return (
     <>
       <Navbar />
       <main>
-        <HeroSection agency={mockAgency} totalVehicles={mockVehicles.length} />
+        <HeroSection agency={agencyData} totalVehicles={totalVehicles} />
         <FeaturedVehicles vehicles={featuredVehicles} />
       </main>
       <Footer />
-      <WhatsAppButton phoneNumber={mockAgency.whatsapp} />
+      <WhatsAppButton phoneNumber={agencyData.whatsapp} />
     </>
   );
 }

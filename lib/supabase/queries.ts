@@ -57,9 +57,17 @@ export async function getVehicles({
     // Búsqueda por texto (marca, modelo, año)
     if (filters.search) {
       const searchTerm = `%${filters.search}%`;
-      query = query.or(
-        `brand.ilike.${searchTerm},model.ilike.${searchTerm},year.eq.${filters.search}`
-      );
+      const isNumber = !isNaN(Number(filters.search));
+
+      if (isNumber) {
+        // Si es número, buscar en marca, modelo y año
+        query = query.or(
+          `brand.ilike.${searchTerm},model.ilike.${searchTerm},year.eq.${filters.search}`
+        );
+      } else {
+        // Si es texto, solo buscar en marca y modelo
+        query = query.or(`brand.ilike.${searchTerm},model.ilike.${searchTerm}`);
+      }
     }
 
     // Filtro de marcas

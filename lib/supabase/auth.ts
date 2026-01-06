@@ -1,6 +1,6 @@
 "use client";
 
-import { createClient } from "./client";
+import { supabaseClient } from "./client";
 
 // ==============================================
 // FUNCIONES DE AUTENTICACIÓN
@@ -22,9 +22,7 @@ export interface AuthUser {
 // ==============================================
 export async function login(credentials: LoginCredentials) {
   try {
-    const supabase = createClient();
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
       email: credentials.email,
       password: credentials.password,
     });
@@ -46,8 +44,7 @@ export async function login(credentials: LoginCredentials) {
 // ==============================================
 export async function logout() {
   try {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabaseClient.auth.signOut();
 
     if (error) {
       console.error("Logout error:", error);
@@ -66,11 +63,10 @@ export async function logout() {
 // ==============================================
 export async function getCurrentUser() {
   try {
-    const supabase = createClient();
     const {
       data: { user },
       error,
-    } = await supabase.auth.getUser();
+    } = await supabaseClient.auth.getUser();
 
     if (error) {
       console.error("Get user error:", error);
@@ -89,11 +85,10 @@ export async function getCurrentUser() {
 // ==============================================
 export async function getCurrentSession() {
   try {
-    const supabase = createClient();
     const {
       data: { session },
       error,
-    } = await supabase.auth.getSession();
+    } = await supabaseClient.auth.getSession();
 
     if (error) {
       console.error("Get session error:", error);
@@ -119,9 +114,7 @@ export async function isAuthenticated() {
 // ESCUCHAR CAMBIOS DE AUTENTICACIÓN
 // ==============================================
 export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
-  const supabase = createClient();
-
-  return supabase.auth.onAuthStateChange((event, session) => {
+  return supabaseClient.auth.onAuthStateChange((event, session) => {
     if (session?.user) {
       callback({
         id: session.user.id,
