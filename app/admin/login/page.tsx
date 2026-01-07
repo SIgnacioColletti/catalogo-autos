@@ -11,10 +11,6 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Image from "next/image";
 
-// ==============================================
-// PÁGINA: LOGIN
-// ==============================================
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -35,14 +31,9 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      console.log("Intentando login...", { email });
-
       const { user, error } = await login({ email, password });
 
-      console.log("Resultado login:", { user, error });
-
       if (error || !user) {
-        console.error("Error de login:", error);
         toast.error("Error de autenticación", {
           description: error || "Credenciales inválidas",
         });
@@ -50,19 +41,18 @@ export default function LoginPage() {
         return;
       }
 
-      console.log("Login exitoso, usuario:", user);
-
       toast.success("¡Bienvenido!", {
         description: "Redirigiendo...",
       });
 
-      // Esperar un poco para asegurar que la sesión se guarde
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Esperar a que las cookies se establezcan
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      console.log("Redirigiendo a /admin...");
+      // Refrescar para que el middleware detecte la nueva sesión
+      router.refresh();
 
       // Redirigir
-      window.location.href = "/admin";
+      router.push("/admin");
     } catch (error) {
       console.error("Excepción en login:", error);
       toast.error("Error", {
@@ -96,7 +86,6 @@ export default function LoginPage() {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
@@ -104,7 +93,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@automaxrosario.com.ar"
+                  placeholder="admin@automax.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -114,7 +103,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <div className="relative">
@@ -143,20 +131,16 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Botón Submit */}
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}
             </Button>
           </form>
 
-          {/* Credenciales de prueba */}
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm font-semibold text-blue-900 mb-2">
               Credenciales de prueba:
             </p>
-            <p className="text-xs text-blue-700">
-              Email: admin@automaxrosario.com.ar
-            </p>
+            <p className="text-xs text-blue-700">Email: admin@automax.com</p>
             <p className="text-xs text-blue-700">Contraseña: admin123</p>
           </div>
         </CardContent>
