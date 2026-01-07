@@ -1,4 +1,9 @@
-import { mockVehicles } from "@/lib/data/vehicles";
+import {
+  getDashboardStats as getSupabaseDashboardStats,
+  getVehiclesByBrand as getSupabaseVehiclesByBrand,
+  getRecentVehicles as getSupabaseRecentVehicles,
+  getMostViewedVehicles as getSupabaseMostViewedVehicles,
+} from "@/lib/supabase/queries";
 import type { Vehicle } from "@/lib/types";
 
 // ==============================================
@@ -7,69 +12,38 @@ import type { Vehicle } from "@/lib/types";
 
 /**
  * Calcula estadísticas generales
+ * Ahora usa datos de Supabase
  */
-export const getDashboardStats = () => {
-  const totalVehicles = mockVehicles.length;
-  const availableVehicles = mockVehicles.filter(
-    (v) => v.status === "available"
-  ).length;
-  const soldVehicles = mockVehicles.filter((v) => v.status === "sold").length;
-  const reservedVehicles = mockVehicles.filter(
-    (v) => v.status === "reserved"
-  ).length;
-  const featuredVehicles = mockVehicles.filter((v) => v.is_featured).length;
-  const totalViews = mockVehicles.reduce((sum, v) => sum + v.views, 0);
-
-  return {
-    totalVehicles,
-    availableVehicles,
-    soldVehicles,
-    reservedVehicles,
-    featuredVehicles,
-    totalViews,
-  };
+export const getDashboardStats = async () => {
+  return await getSupabaseDashboardStats();
 };
 
 /**
  * Agrupa vehículos por marca con conteo
+ * Ahora usa datos de Supabase
  */
-export const getVehiclesByBrand = () => {
-  const brandCount: Record<string, number> = {};
-
-  mockVehicles.forEach((vehicle) => {
-    if (brandCount[vehicle.brand]) {
-      brandCount[vehicle.brand]++;
-    } else {
-      brandCount[vehicle.brand] = 1;
-    }
-  });
-
-  // Convertir a array y ordenar por cantidad
-  return Object.entries(brandCount)
-    .map(([brand, count]) => ({
-      brand,
-      count,
-    }))
-    .sort((a, b) => b.count - a.count);
+export const getVehiclesByBrand = async () => {
+  return await getSupabaseVehiclesByBrand();
 };
 
 /**
  * Obtiene vehículos más recientes
+ * Ahora usa datos de Supabase
  */
-export const getRecentVehicles = (limit: number = 5): Vehicle[] => {
-  return [...mockVehicles]
-    .sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )
-    .slice(0, limit);
+export const getRecentVehicles = async (
+  limit: number = 5
+): Promise<Vehicle[]> => {
+  return await getSupabaseRecentVehicles(limit);
 };
 
 /**
  * Obtiene vehículos más vistos
+ * Ahora usa datos de Supabase
  */
-export const getTopViewedVehicles = (limit: number = 5): Vehicle[] => {
-  return [...mockVehicles].sort((a, b) => b.views - a.views).slice(0, limit);
+export const getTopViewedVehicles = async (
+  limit: number = 5
+): Promise<Vehicle[]> => {
+  return await getSupabaseMostViewedVehicles(limit);
 };
 
 /**

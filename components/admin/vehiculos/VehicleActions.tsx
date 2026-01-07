@@ -11,15 +11,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Copy, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useVehiclesStore } from "@/lib/store/useVehiclesStore";
 import { DeleteVehicleDialog } from "./DeleteVehicleDialog";
 import type { Vehicle } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-
-// ==============================================
-// MENÚ DE ACCIONES POR VEHÍCULO
-// ==============================================
+import { deleteVehicle } from "@/app/admin/vehiculos/actions";
 
 interface VehicleActionsProps {
   vehicle: Vehicle;
@@ -27,33 +23,41 @@ interface VehicleActionsProps {
 
 export const VehicleActions = ({ vehicle }: VehicleActionsProps) => {
   const router = useRouter();
-  const { deleteVehicle, duplicateVehicle } = useVehiclesStore();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleDelete = () => {
-    deleteVehicle(vehicle.id);
-    setShowDeleteDialog(false);
+  const handleDelete = async () => {
+    setIsLoading(true);
+    try {
+      const result = await deleteVehicle(vehicle.id);
 
-    toast.success("Vehículo eliminado", {
-      description: `${vehicle.brand} ${vehicle.model} fue eliminado correctamente`,
-    });
-  };
+      if (result?.error) {
+        toast.error("Error al eliminar", {
+          description: result.error,
+        });
+        return;
+      }
 
-  const handleDuplicate = () => {
-    duplicateVehicle(vehicle.id);
+      toast.success("Vehículo eliminado", {
+        description: `${vehicle.brand} ${vehicle.model} fue eliminado correctamente`,
+      });
 
-    toast.success("Vehículo duplicado", {
-      description: `Se creó una copia de ${vehicle.brand} ${vehicle.model}`,
-    });
-
-    router.refresh();
+      setShowDeleteDialog(false);
+      router.refresh();
+    } catch (error) {
+      toast.error("Error", {
+        description: "Ocurrió un error al eliminar el vehículo",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" disabled={isLoading}>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
@@ -77,14 +81,12 @@ export const VehicleActions = ({ vehicle }: VehicleActionsProps) => {
               Editar
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleDuplicate}>
-            <Copy className="mr-2 h-4 w-4" />
-            Duplicar
-          </DropdownMenuItem>
+
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => setShowDeleteDialog(true)}
             className="text-red-600 focus:text-red-600"
+            disabled={isLoading}
           >
             <Trash2 className="mr-2 h-4 w-4" />
             Eliminar
