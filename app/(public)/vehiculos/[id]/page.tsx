@@ -9,29 +9,22 @@ import { VehicleFeatures } from "@/components/vehiculos/VehicleFeatures";
 import { RelatedVehicles } from "@/components/vehiculos/RelatedVehicles";
 import { ShareButtons } from "@/components/vehiculos/ShareButtons";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { formatPrice } from "@/lib/utils";
 import {
   Phone,
   ArrowLeft,
-  Calendar,
-  Gauge,
-  Fuel,
-  Settings,
-  Car,
-  Eye,
+  MessageCircle,
   MapPin,
+  Eye,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import { FadeIn } from "@/components/animations/FadeIn";
 import { SlideIn } from "@/components/animations/SlideIn";
 import { mockAgency } from "@/lib/data/agency";
 import { ViewTracker } from "@/components/vehiculos/ViewTracker";
-import { formatPrice, formatKilometers } from "@/lib/utils";
-
-export const revalidate = 60;
 export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface VehiclePageProps {
   params: Promise<{
@@ -46,12 +39,10 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
   if (!vehicle) {
     notFound();
   }
-
   const [relatedVehicles, agency] = await Promise.all([
-    getRelatedVehicles(vehicle.brand, vehicle.id, 3),
+    getRelatedVehicles(vehicle.brand, vehicle.id, 6), // ✅ 3 argumentos
     getAgency("automax-rosario"),
   ]);
-
   const agencyData = agency || mockAgency;
 
   const whatsappMessage = encodeURIComponent(
@@ -60,291 +51,240 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
   const whatsappUrl = `https://wa.me/${agencyData.whatsapp}?text=${whatsappMessage}`;
 
-  const statusConfig = {
-    available: {
-      label: "Disponible",
-      variant: "default" as const,
-      color: "bg-green-500",
-    },
-    reserved: {
-      label: "Reservado",
-      variant: "secondary" as const,
-      color: "bg-yellow-500",
-    },
-    sold: {
-      label: "Vendido",
-      variant: "destructive" as const,
-      color: "bg-red-500",
-    },
+  const fuelLabels: Record<string, string> = {
+    nafta: "Nafta",
+    diesel: "Diésel",
+    gnc: "GNC",
+    electrico: "Eléctrico",
+    hibrido: "Híbrido",
   };
 
-  const status = statusConfig[vehicle.status];
+  const transmissionLabels: Record<string, string> = {
+    manual: "Manual",
+    automatica: "Automática",
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <ViewTracker vehicleId={id} />
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <FadeIn>
-          <div className="flex items-center gap-2 text-sm text-gray-600 mb-6">
-            <Link href="/" className="hover:text-primary transition-colors">
-              Inicio
+      {/* Header con breadcrumbs */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <FadeIn>
+            <Link href="/vehiculos">
+              <Button
+                variant="ghost"
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 -ml-2 mb-3"
+                size="sm"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Volver al listado
+              </Button>
             </Link>
-            <span>/</span>
-            <Link
-              href="/vehiculos"
-              className="hover:text-primary transition-colors"
-            >
-              Vehículos
-            </Link>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">
+
+            {/* Título principal */}
+            <h1 className="text-gray-900 text-2xl md:text-3xl font-bold uppercase tracking-wide">
               {vehicle.brand} {vehicle.model} {vehicle.year}
-            </span>
-          </div>
+            </h1>
+          </FadeIn>
+        </div>
+      </div>
 
-          <Link href="/vehiculos">
-            <Button variant="ghost" className="mb-6 hover:bg-gray-100">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al listado
-            </Button>
-          </Link>
-        </FadeIn>
-
-        {/* Título y badges */}
-        <SlideIn direction="up">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                {vehicle.brand} {vehicle.model}
-              </h1>
-              <p className="text-xl text-gray-600">{vehicle.year}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge variant={status.variant} className="text-sm px-4 py-2">
-                <span className={`w-2 h-2 rounded-full ${status.color} mr-2`} />
-                {status.label}
-              </Badge>
-              {vehicle.is_featured && (
-                <Badge
-                  variant="outline"
-                  className="text-sm px-4 py-2 border-yellow-500 text-yellow-700"
-                >
-                  ⭐ Destacado
-                </Badge>
-              )}
-            </div>
-          </div>
-        </SlideIn>
-
-        {/* Layout principal: Imágenes + Descripción */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-8">
-          {/* Columna izquierda: Galería */}
-          <SlideIn direction="left">
-            <ImageGallery images={vehicle.images} />
-          </SlideIn>
-
-          {/* Columna derecha: Descripción y características */}
-          <div className="space-y-6">
-            {/* Especificaciones técnicas */}
-            <SlideIn direction="right">
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">
-                    Especificaciones Técnicas
-                  </h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Año</p>
-                        <p className="font-semibold">{vehicle.year}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Gauge className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Kilómetros</p>
-                        <p className="font-semibold text-sm">
-                          {formatKilometers(vehicle.kilometers)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Fuel className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Combustible</p>
-                        <p className="font-semibold capitalize">
-                          {vehicle.fuel_type}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Settings className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Transmisión</p>
-                        <p className="font-semibold capitalize">
-                          {vehicle.transmission}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Car className="h-5 w-5 text-primary flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Carrocería</p>
-                        <p className="font-semibold capitalize">
-                          {vehicle.body_type}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="text-xl flex-shrink-0">🚪</span>
-                      <div>
-                        <p className="text-xs text-gray-500">Puertas</p>
-                        <p className="font-semibold">{vehicle.doors}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="text-xl flex-shrink-0">🎨</span>
-                      <div>
-                        <p className="text-xs text-gray-500">Color</p>
-                        <p className="font-semibold">{vehicle.color}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Eye className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">Vistas</p>
-                        <p className="font-semibold">{vehicle.views}</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Columna izquierda: Galería y descripción */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Galería */}
+            <SlideIn direction="left">
+              <div className="bg-white rounded-lg overflow-hidden shadow-md border border-gray-200">
+                <ImageGallery images={vehicle.images} />
+              </div>
             </SlideIn>
 
-            {/* Descripción */}
-            <SlideIn direction="right" delay={0.1}>
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-xl font-bold mb-4">Descripción</h2>
+            {/* Descripción ampliada */}
+            {vehicle.description && (
+              <SlideIn direction="left" delay={0.1}>
+                <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                  <h2 className="text-blue-600 text-xl font-bold mb-4">
+                    Descripción ampliada
+                  </h2>
                   <p className="text-gray-700 leading-relaxed whitespace-pre-line">
                     {vehicle.description}
                   </p>
-                </CardContent>
-              </Card>
-            </SlideIn>
+                </div>
+              </SlideIn>
+            )}
 
             {/* Características */}
-            <SlideIn direction="right" delay={0.2}>
+            <SlideIn direction="left" delay={0.2}>
               <VehicleFeatures features={vehicle.features} />
             </SlideIn>
-          </div>
-        </div>
 
-        {/* Sección inferior: Precio, Contacto y Compartir */}
-        <SlideIn direction="up" delay={0.3}>
-          <div className="grid md:grid-cols-3 gap-6 mb-16">
-            {/* Precio y financiación */}
-            <Card className="border-2 border-primary">
-              <CardContent className="p-6">
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-2">Precio</p>
-                  <p className="text-4xl font-bold text-primary mb-4">
+            {/* Compartir - Desktop */}
+            <SlideIn direction="left" delay={0.3}>
+              <div className="hidden lg:block bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                <ShareButtons vehicle={vehicle} />
+              </div>
+            </SlideIn>
+          </div>
+
+          {/* Columna derecha: Sidebar con info */}
+          <div className="lg:col-span-1">
+            <SlideIn direction="right">
+              <div className="sticky top-6 space-y-6">
+                {/* Card de Descripción del anuncio */}
+                <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                  <h2 className="text-blue-600 text-xl font-bold mb-4">
+                    Descripción del anuncio
+                  </h2>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Marca:</span>
+                      <span className="text-gray-900 font-semibold">
+                        {vehicle.brand}
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Versión:</span>
+                      <span className="text-gray-900 font-semibold">
+                        {vehicle.model}
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Transmisión:</span>
+                      <span className="text-gray-900 font-semibold capitalize">
+                        {transmissionLabels[vehicle.transmission] ||
+                          vehicle.transmission}
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Año:</span>
+                      <span className="text-gray-900 font-semibold">
+                        {vehicle.year}
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Kilometraje:</span>
+                      <span className="text-gray-900 font-semibold">
+                        {vehicle.kilometers.toLocaleString()} Km.
+                      </span>
+                    </div>
+                    <div className="flex">
+                      <span className="text-gray-500 w-32">Combustible:</span>
+                      <span className="text-gray-900 font-semibold capitalize">
+                        {fuelLabels[vehicle.fuel_type] || vehicle.fuel_type}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card de Precio */}
+                <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                  <h2 className="text-blue-600 text-xl font-bold mb-4">
+                    Precio
+                  </h2>
+                  <p className="text-gray-900 text-4xl font-bold">
                     {formatPrice(vehicle.price)}
                   </p>
-                  <Separator className="my-4" />
-                  <p className="text-sm text-gray-600 mb-2">
-                    💳 Financiación disponible
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Consulta por nuestros planes de pago
-                  </p>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Contacto */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4 text-center">Contacto</h3>
-                <div className="space-y-3">
-                  <Button asChild size="lg" className="w-full">
+                {/* Card de Datos de contacto */}
+                <div className="bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                  <h2 className="text-blue-600 text-xl font-bold mb-4">
+                    Datos de contacto
+                  </h2>
+
+                  <div className="space-y-4 mb-6">
+                    {/* Rating */}
+                    <div className="flex items-center gap-2">
+                      <Star className="h-5 w-5 fill-amber-400 text-amber-400" />
+                      <span className="text-gray-900 font-semibold">
+                        {agencyData.name || "Agencia"}
+                      </span>
+                    </div>
+
+                    {/* Ubicación */}
+                    {agencyData.address && (
+                      <>
+                        <div className="flex gap-2 text-sm">
+                          <span className="text-gray-500">Provincia:</span>
+                          <span className="text-gray-900 font-semibold">
+                            {agencyData.city || "Santa Fe"}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 text-sm">
+                          <span className="text-gray-500">Ciudad:</span>
+                          <span className="text-gray-900 font-semibold">
+                            Rosario
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2 text-sm">
+                          <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <span className="text-gray-700">
+                            {agencyData.address}
+                          </span>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Visitas */}
+                    <div className="flex items-center gap-2 text-sm pt-3 border-t border-gray-200">
+                      <Eye className="h-4 w-4 text-gray-400" />
+                      <span className="text-gray-700">
+                        {vehicle.views || 0} visualizaciones
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botón WhatsApp grande */}
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white text-lg font-bold shadow-lg"
+                  >
                     <a
                       href={whatsappUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Phone className="mr-2 h-5 w-5" />
-                      WhatsApp
+                      <MessageCircle className="mr-2 h-6 w-6" />
+                      Contactanos por WhatsApp
                     </a>
                   </Button>
 
+                  {/* Botón Llamar */}
                   <Button
                     asChild
                     variant="outline"
                     size="lg"
-                    className="w-full"
+                    className="w-full h-12 mt-3 border-2 border-gray-300 text-gray-900 hover:bg-gray-50"
                   >
                     <a href={`tel:${agencyData.phone}`}>
                       <Phone className="mr-2 h-5 w-5" />
-                      Llamar
+                      Llamar ahora
                     </a>
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Ubicación y compartir */}
-            <Card>
-              <CardContent className="p-6">
-                <h3 className="font-bold text-lg mb-4 text-center">
-                  Ubicación
-                </h3>
-                <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                    <MapPin className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {agencyData.address}
-                      </p>
-                      <p className="text-xs text-gray-500">{agencyData.city}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                    <p className="text-sm font-medium">{agencyData.phone}</p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <p className="text-sm font-medium mb-3 text-center">
-                      Compartir
-                    </p>
-                    <ShareButtons vehicle={vehicle} />
-                  </div>
+                {/* Compartir - Mobile */}
+                <div className="lg:hidden bg-white rounded-lg p-6 shadow-md border border-gray-200">
+                  <ShareButtons vehicle={vehicle} />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </SlideIn>
           </div>
-        </SlideIn>
+        </div>
 
         {/* Vehículos relacionados */}
         {relatedVehicles.length > 0 && (
           <SlideIn direction="up" delay={0.4}>
-            <RelatedVehicles vehicles={relatedVehicles} />
+            <div className="mt-16">
+              <RelatedVehicles vehicles={relatedVehicles} />
+            </div>
           </SlideIn>
         )}
-      </div>
-
-      {/* Botón flotante en mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg z-50">
-        <Button asChild size="lg" className="w-full">
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Phone className="mr-2 h-5 w-5" />
-            Consultar por WhatsApp
-          </a>
-        </Button>
       </div>
     </div>
   );

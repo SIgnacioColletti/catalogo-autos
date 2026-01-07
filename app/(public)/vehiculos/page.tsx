@@ -63,16 +63,30 @@ export default async function VehiculosPage({
     bodyTypes: params.bodyTypes?.split(",") || undefined,
   };
 
-  // Obtener datos de Supabase
-  const [{ vehicles, total }, uniqueBrands] = await Promise.all([
-    getVehicles({
-      filters,
-      sortBy,
-      page,
-      limit: 12,
-    }),
-    getUniqueBrands(),
-  ]);
+  // Obtener todos los vehículos disponibles para calcular rangos
+  const [{ vehicles, total }, uniqueBrands, { vehicles: allVehicles }] =
+    await Promise.all([
+      getVehicles({
+        filters,
+        sortBy,
+        page,
+        limit: 12,
+      }),
+      getUniqueBrands(),
+      getVehicles({
+        limit: 1000, // Traer todos para calcular rangos
+      }),
+    ]);
+
+  // Calcular rangos dinámicos basados en TODOS los vehículos disponibles
+  const vehicleRanges = {
+    minYear: Math.min(...allVehicles.map((v) => v.year)),
+    maxYear: Math.max(...allVehicles.map((v) => v.year)),
+    minPrice: Math.min(...allVehicles.map((v) => v.price)),
+    maxPrice: Math.max(...allVehicles.map((v) => v.price)),
+    minKm: Math.min(...allVehicles.map((v) => v.kilometers)),
+    maxKm: Math.max(...allVehicles.map((v) => v.kilometers)),
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,6 +102,7 @@ export default async function VehiculosPage({
             initialVehicles={vehicles}
             total={total}
             uniqueBrands={uniqueBrands}
+            vehicleRanges={vehicleRanges}
           />
         </SlideIn>
       </div>

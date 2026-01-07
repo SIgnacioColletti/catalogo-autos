@@ -309,33 +309,61 @@ export async function incrementVehicleViews(id: string) {
   }
 }
 
+// ==============================================
+// VEHÍCULOS RELACIONADOS
+// ==============================================
 export async function getRelatedVehicles(
   brand: string,
   currentId: string,
-  limit: number = 3
+  limit: number = 6
 ) {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+
+    // Paso 1: Buscar vehículos de la misma marca
+    const { data: sameBrand, error: brandError } = await supabase
       .from("vehicles")
       .select("*")
       .eq("brand", brand)
       .neq("id", currentId)
-      .neq("status", "sold")
+      .eq("status", "available")
       .limit(limit);
 
-    if (error) {
-      logger.error("Error fetching related vehicles", error);
-      throw error;
+    if (brandError) {
+      logger.error("Error fetching related vehicles by brand", brandError);
     }
 
-    return (data as Vehicle[]) || [];
+    let results = (sameBrand as Vehicle[]) || [];
+
+    // Paso 2: Si necesitamos más vehículos, agregar los más recientes
+    if (results.length < limit) {
+      const { data: recent, error: recentError } = await supabase
+        .from("vehicles")
+        .select("*")
+        .neq("id", currentId)
+        .neq("brand", brand)
+        .eq("status", "available")
+        .order("created_at", { ascending: false })
+        .limit(limit - results.length);
+
+      if (recentError) {
+        logger.error("Error fetching recent vehicles", recentError);
+      }
+
+      const recentVehicles = (recent as Vehicle[]) || [];
+      results = [...results, ...recentVehicles];
+    }
+
+    return results.slice(0, limit);
   } catch (error) {
     logger.error("Error in getRelatedVehicles", error);
     return [];
   }
 }
 
+// ==============================================
+// ESTADÍSTICAS PARA DASHBOARD
+// ==============================================
 export async function getDashboardStats() {
   try {
     const supabase = await createClient();

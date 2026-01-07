@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { VehicleGrid } from "@/components/vehiculos/VehicleGrid";
-import { FilterSidebar } from "@/components/vehiculos/FilterSidebar";
+import { FilterSidebarClient } from "@/components/vehiculos/FilterSidebarClient";
 import { SearchBarClient } from "@/components/vehiculos/SearchBarClient";
 import { MobileFiltersClient } from "@/components/vehiculos/MobileFiltersClient";
 import {
@@ -15,16 +15,31 @@ import {
 import type { Vehicle } from "@/lib/types";
 import type { VehicleSortBy } from "@/lib/supabase/queries";
 
+// ==============================================
+// CLIENT COMPONENT PARA FILTROS
+// ==============================================
+
+export interface VehicleRanges {
+  minYear: number;
+  maxYear: number;
+  minPrice: number;
+  maxPrice: number;
+  minKm: number;
+  maxKm: number;
+}
+
 interface VehiclesClientProps {
   initialVehicles: Vehicle[];
   total: number;
   uniqueBrands: string[];
+  vehicleRanges: VehicleRanges;
 }
 
 export const VehiclesClient = ({
   initialVehicles,
   total,
   uniqueBrands,
+  vehicleRanges,
 }: VehiclesClientProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -34,7 +49,7 @@ export const VehiclesClient = ({
   const handleSortChange = (value: VehicleSortBy) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("sortBy", value);
-    params.delete("page");
+    params.delete("page"); // Reset a página 1
     router.push(`/vehiculos?${params.toString()}`);
   };
 
@@ -49,6 +64,29 @@ export const VehiclesClient = ({
     router.push(`/vehiculos?${params.toString()}`);
   };
 
+  const handleFilterChange = (filters: Record<string, any>) => {
+    const params = new URLSearchParams();
+
+    // Agregar cada filtro a los params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value) && value.length > 0) {
+          params.set(key, value.join(","));
+        } else if (!Array.isArray(value)) {
+          params.set(key, value.toString());
+        }
+      }
+    });
+
+    // Mantener sortBy si existe
+    if (sortBy) {
+      params.set("sortBy", sortBy);
+    }
+
+    router.push(`/vehiculos?${params.toString()}`);
+  };
+
+  // Verificar si hay filtros activos
   const hasActiveFilters =
     searchParams.get("search") ||
     searchParams.get("brands") ||
@@ -65,7 +103,7 @@ export const VehiclesClient = ({
   return (
     <>
       {/* Barra de búsqueda */}
-      <div className="flex gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="flex-1">
           <SearchBarClient
             defaultValue={searchParams.get("search") || ""}
@@ -75,7 +113,8 @@ export const VehiclesClient = ({
         <div className="lg:hidden">
           <MobileFiltersClient
             uniqueBrands={uniqueBrands}
-            onFilterChange={() => {}}
+            vehicleRanges={vehicleRanges}
+            onFilterChange={handleFilterChange}
           />
         </div>
       </div>
@@ -83,7 +122,11 @@ export const VehiclesClient = ({
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Sidebar de filtros - Desktop */}
         <aside className="hidden lg:block w-64 flex-shrink-0">
-          <FilterSidebar uniqueBrands={uniqueBrands} />
+          <FilterSidebarClient
+            uniqueBrands={uniqueBrands}
+            vehicleRanges={vehicleRanges}
+            onFilterChange={handleFilterChange}
+          />
         </aside>
 
         {/* Contenido principal */}
