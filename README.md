@@ -22,7 +22,6 @@ Sistema de catálogo virtual para agencias de autos y motos usadas desarrollado 
 - ✅ Editor visual de imágenes
 - ✅ Cambio rápido de estado (Disponible/Reservado/Vendido)
 - ✅ Búsqueda y filtros
-- ✅ Autenticación con Supabase Auth
 
 ## 🛠️ Stack Tecnológico
 
