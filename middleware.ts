@@ -16,7 +16,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({
@@ -30,26 +30,30 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // CRÍTICO: Refrescar la sesión
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const isLoginPage = request.nextUrl.pathname === "/admin/login";
   const isAdminPage = request.nextUrl.pathname.startsWith("/admin");
 
   console.log("Middleware:", {
     path: request.nextUrl.pathname,
-    hasSession: !!session,
+    hasUser: !!user,
+    email: user?.email,
   });
 
   // Si está en login y tiene sesión, redirigir a admin
-  if (isLoginPage && session) {
-    return NextResponse.redirect(new URL("/admin", request.url));
+  if (isLoginPage && user) {
+    const url = new URL("/admin", request.url);
+    return NextResponse.redirect(url);
   }
 
   // Si está en admin (no login) y NO tiene sesión, redirigir a login
-  if (isAdminPage && !isLoginPage && !session) {
-    return NextResponse.redirect(new URL("/admin/login", request.url));
+  if (isAdminPage && !isLoginPage && !user) {
+    const url = new URL("/admin/login", request.url);
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

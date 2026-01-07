@@ -41,18 +41,10 @@ export default function LoginPage() {
         return;
       }
 
-      toast.success("¡Bienvenido!", {
-        description: "Redirigiendo...",
-      });
+      toast.success("¡Bienvenido!");
 
-      // Esperar a que las cookies se establezcan
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Refrescar para que el middleware detecte la nueva sesión
-      router.refresh();
-
-      // Redirigir
-      router.push("/admin");
+      // CRÍTICO: Hard redirect para forzar cookies
+      window.location.replace("/admin");
     } catch (error) {
       console.error("Excepción en login:", error);
       toast.error("Error", {

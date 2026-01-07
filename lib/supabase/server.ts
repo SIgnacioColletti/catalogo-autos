@@ -1,12 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// ==============================================
-// SUPABASE SERVER CLIENT
-// Cliente para usar en Server Components y Server Actions
-// ==============================================
-
-export async function createServerSupabaseClient() {
+export async function createClient() {
   const cookieStore = await cookies();
 
   return createServerClient(
@@ -23,7 +18,7 @@ export async function createServerSupabaseClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // Puede fallar en Server Components
+            // Ignorar errores en middleware
           }
         },
       },
@@ -31,14 +26,4 @@ export async function createServerSupabaseClient() {
   );
 }
 
-// Mantener exportación legacy
-export const supabaseServer = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      getAll: () => [],
-      setAll: () => {},
-    },
-  }
-);
+export const supabaseServer = await createClient();
