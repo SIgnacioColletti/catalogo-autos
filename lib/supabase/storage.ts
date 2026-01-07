@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "./server";
+import { supabaseServer } from "./server";
 
 // ==============================================
 // UTILIDADES PARA SUPABASE STORAGE
@@ -6,8 +6,6 @@ import { createServerSupabaseClient } from "./server";
 
 export async function uploadVehicleImage(file: File): Promise<string | null> {
   try {
-    const supabase = await createServerSupabaseClient();
-
     // Generar nombre único para el archivo
     const fileExt = file.name.split(".").pop();
     const fileName = `${Date.now()}-${Math.random()
@@ -16,7 +14,7 @@ export async function uploadVehicleImage(file: File): Promise<string | null> {
     const filePath = `vehicles/${fileName}`;
 
     // Subir archivo
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseServer.storage
       .from("vehicle-images")
       .upload(filePath, file, {
         cacheControl: "3600",
@@ -29,7 +27,7 @@ export async function uploadVehicleImage(file: File): Promise<string | null> {
     }
 
     // Obtener URL pública
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseServer.storage
       .from("vehicle-images")
       .getPublicUrl(filePath);
 
@@ -42,14 +40,12 @@ export async function uploadVehicleImage(file: File): Promise<string | null> {
 
 export async function deleteVehicleImage(imageUrl: string): Promise<boolean> {
   try {
-    const supabase = await createServerSupabaseClient();
-
     // Extraer el path del archivo de la URL
     const url = new URL(imageUrl);
     const pathParts = url.pathname.split("/");
     const filePath = pathParts.slice(-2).join("/"); // vehicles/filename.jpg
 
-    const { error } = await supabase.storage
+    const { error } = await supabaseServer.storage
       .from("vehicle-images")
       .remove([filePath]);
 

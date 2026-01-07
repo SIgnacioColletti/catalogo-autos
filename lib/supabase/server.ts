@@ -26,4 +26,18 @@ export async function createClient() {
   );
 }
 
+// Exportación para compatibilidad con código antiguo
+export const createServerSupabaseClient = createClient;
+
+// Cliente server para usar directamente (lazy initialization)
+let _supabaseServer: Awaited<ReturnType<typeof createClient>> | null = null;
+
+export async function getSupabaseServer() {
+  if (!_supabaseServer) {
+    _supabaseServer = await createClient();
+  }
+  return _supabaseServer;
+}
+
+// Para queries que necesitan el cliente directamente
 export const supabaseServer = await createClient();
