@@ -9,7 +9,7 @@ import { BrandChart } from "@/components/admin/dashboard/BrandChart";
 import { RecentVehiclesTable } from "@/components/admin/dashboard/RecentVehiclesTable";
 import { Car, TrendingUp, Star, Eye } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
+export const dynamic = "force-dynamic";
 export default async function AdminDashboard() {
   const [stats, brandData, recentVehicles, mostViewedVehicles] =
     await Promise.all([

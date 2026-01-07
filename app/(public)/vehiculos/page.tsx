@@ -5,7 +5,7 @@ import { SlideIn } from "@/components/animations/SlideIn";
 import type { VehicleSortBy } from "@/lib/supabase/queries";
 // Revalidar cada 60 segundos
 export const revalidate = 60;
-
+export const dynamic = "force-dynamic";
 // Generar metadata dinámica
 export async function generateMetadata() {
   return {

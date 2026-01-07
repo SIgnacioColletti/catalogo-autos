@@ -1,4 +1,4 @@
-import { supabaseServer } from "./server";
+import { createClient } from "./server";
 
 // ==============================================
 // UTILIDADES PARA SUPABASE STORAGE
@@ -14,6 +14,7 @@ export async function uploadVehicleImage(file: File): Promise<string | null> {
     const filePath = `vehicles/${fileName}`;
 
     // Subir archivo
+    const supabaseServer = await createClient();
     const { data, error } = await supabaseServer.storage
       .from("vehicle-images")
       .upload(filePath, file, {
@@ -44,7 +45,7 @@ export async function deleteVehicleImage(imageUrl: string): Promise<boolean> {
     const url = new URL(imageUrl);
     const pathParts = url.pathname.split("/");
     const filePath = pathParts.slice(-2).join("/"); // vehicles/filename.jpg
-
+    const supabaseServer = await createClient();
     const { error } = await supabaseServer.storage
       .from("vehicle-images")
       .remove([filePath]);

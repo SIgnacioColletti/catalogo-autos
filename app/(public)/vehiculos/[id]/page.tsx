@@ -31,6 +31,7 @@ import { ViewTracker } from "@/components/vehiculos/ViewTracker";
 import { formatPrice, formatKilometers } from "@/lib/utils";
 
 export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 interface VehiclePageProps {
   params: Promise<{

@@ -1,4 +1,4 @@
-import { supabaseServer } from "./server";
+import { createClient } from "./server";
 import type { Vehicle } from "@/lib/types";
 import { logger } from "@/lib/logger";
 
@@ -50,32 +50,27 @@ export async function getVehicles({
   try {
     logger.info("Fetching vehicles", { filters, sortBy, page, limit });
 
-    let query = supabaseServer.from("vehicles").select("*", { count: "exact" });
+    const supabase = await createClient();
+    let query = supabase.from("vehicles").select("*", { count: "exact" });
 
     // FILTROS
-
-    // Búsqueda por texto (marca, modelo, año)
     if (filters.search) {
       const searchTerm = `%${filters.search}%`;
       const isNumber = !isNaN(Number(filters.search));
 
       if (isNumber) {
-        // Si es número, buscar en marca, modelo y año
         query = query.or(
           `brand.ilike.${searchTerm},model.ilike.${searchTerm},year.eq.${filters.search}`
         );
       } else {
-        // Si es texto, solo buscar en marca y modelo
         query = query.or(`brand.ilike.${searchTerm},model.ilike.${searchTerm}`);
       }
     }
 
-    // Filtro de marcas
     if (filters.brands && filters.brands.length > 0) {
       query = query.in("brand", filters.brands);
     }
 
-    // Filtro de año
     if (filters.yearFrom !== null && filters.yearFrom !== undefined) {
       query = query.gte("year", filters.yearFrom);
     }
@@ -83,7 +78,6 @@ export async function getVehicles({
       query = query.lte("year", filters.yearTo);
     }
 
-    // Filtro de precio
     if (filters.priceFrom !== null && filters.priceFrom !== undefined) {
       query = query.gte("price", filters.priceFrom);
     }
@@ -91,7 +85,6 @@ export async function getVehicles({
       query = query.lte("price", filters.priceTo);
     }
 
-    // Filtro de kilómetros
     if (
       filters.kilometersFrom !== null &&
       filters.kilometersFrom !== undefined
@@ -102,30 +95,24 @@ export async function getVehicles({
       query = query.lte("kilometers", filters.kilometersTo);
     }
 
-    // Filtro de combustible
     if (filters.fuelTypes && filters.fuelTypes.length > 0) {
       query = query.in("fuel_type", filters.fuelTypes);
     }
 
-    // Filtro de transmisión
     if (filters.transmissions && filters.transmissions.length > 0) {
       query = query.in("transmission", filters.transmissions);
     }
 
-    // Filtro de carrocería
     if (filters.bodyTypes && filters.bodyTypes.length > 0) {
       query = query.in("body_type", filters.bodyTypes);
     }
 
-    // Filtro de estado
     if (filters.status && filters.status.length > 0) {
       query = query.in("status", filters.status);
     } else {
-      // Por defecto, no mostrar vendidos en catálogo público
       query = query.neq("status", "sold");
     }
 
-    // Filtro de destacados
     if (filters.isFeatured !== undefined) {
       query = query.eq("is_featured", filters.isFeatured);
     }
@@ -162,7 +149,6 @@ export async function getVehicles({
     const to = from + limit - 1;
     query = query.range(from, to);
 
-    // EJECUTAR QUERY
     const { data, error, count } = await query;
 
     if (error) {
@@ -191,16 +177,14 @@ export async function getVehicles({
   }
 }
 
-// ==============================================
-// OBTENER VEHÍCULOS DESTACADOS
-// ==============================================
 export async function getFeaturedVehicles(limit: number = 6) {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("*")
       .eq("is_featured", true)
-      .neq("status", "sold") // 👈 CAMBIADO: No mostrar vendidos
+      .neq("status", "sold")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -216,12 +200,10 @@ export async function getFeaturedVehicles(limit: number = 6) {
   }
 }
 
-// ==============================================
-// OBTENER MARCAS ÚNICAS
-// ==============================================
 export async function getUniqueBrands() {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("brand")
       .neq("status", "sold");
@@ -231,7 +213,6 @@ export async function getUniqueBrands() {
       throw error;
     }
 
-    // Extraer marcas únicas y ordenar
     const brands = [...new Set(data.map((v) => v.brand))].sort();
     return brands;
   } catch (error) {
@@ -240,12 +221,10 @@ export async function getUniqueBrands() {
   }
 }
 
-// ==============================================
-// OBTENER AGENCIA
-// ==============================================
 export async function getAgency(slug: string = "automax-rosario") {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("agencies")
       .select("*")
       .eq("slug", slug)
@@ -263,12 +242,10 @@ export async function getAgency(slug: string = "automax-rosario") {
   }
 }
 
-// ==============================================
-// CONTAR TOTAL DE VEHÍCULOS
-// ==============================================
 export async function getTotalVehiclesCount() {
   try {
-    const { count, error } = await supabaseServer
+    const supabase = await createClient();
+    const { count, error } = await supabase
       .from("vehicles")
       .select("*", { count: "exact", head: true })
       .neq("status", "sold");
@@ -285,12 +262,10 @@ export async function getTotalVehiclesCount() {
   }
 }
 
-// ==============================================
-// OBTENER VEHÍCULO POR ID
-// ==============================================
 export async function getVehicleById(id: string) {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("*")
       .eq("id", id)
@@ -308,25 +283,22 @@ export async function getVehicleById(id: string) {
   }
 }
 
-// ==============================================
-// INCREMENTAR VISTAS DE VEHÍCULO
-// ==============================================
 export async function incrementVehicleViews(id: string) {
   try {
-    const { error } = await supabaseServer.rpc("increment_views", {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("increment_views", {
       vehicle_id: id,
     });
 
     if (error) {
-      // Si la función RPC no existe, hacerlo manualmente
-      const { data: vehicle } = await supabaseServer
+      const { data: vehicle } = await supabase
         .from("vehicles")
         .select("views")
         .eq("id", id)
         .single();
 
       if (vehicle) {
-        await supabaseServer
+        await supabase
           .from("vehicles")
           .update({ views: (vehicle.views || 0) + 1 })
           .eq("id", id);
@@ -337,21 +309,19 @@ export async function incrementVehicleViews(id: string) {
   }
 }
 
-// ==============================================
-// OBTENER VEHÍCULOS SIMILARES
-// ==============================================
 export async function getRelatedVehicles(
   brand: string,
   currentId: string,
   limit: number = 3
 ) {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("*")
       .eq("brand", brand)
       .neq("id", currentId)
-      .neq("status", "sold") // 👈 CAMBIADO: No mostrar vendidos
+      .neq("status", "sold")
       .limit(limit);
 
     if (error) {
@@ -366,32 +336,25 @@ export async function getRelatedVehicles(
   }
 }
 
-// ==============================================
-// ESTADÍSTICAS PARA DASHBOARD
-// ==============================================
 export async function getDashboardStats() {
   try {
-    // Total de vehículos
-    const { count: totalVehicles } = await supabaseServer
+    const supabase = await createClient();
+
+    const { count: totalVehicles } = await supabase
       .from("vehicles")
       .select("*", { count: "exact", head: true });
 
-    // Vehículos vendidos
-    const { count: soldVehicles } = await supabaseServer
+    const { count: soldVehicles } = await supabase
       .from("vehicles")
       .select("*", { count: "exact", head: true })
       .eq("status", "sold");
 
-    // Vehículos destacados
-    const { count: featuredVehicles } = await supabaseServer
+    const { count: featuredVehicles } = await supabase
       .from("vehicles")
       .select("*", { count: "exact", head: true })
       .eq("is_featured", true);
 
-    // Total de vistas
-    const { data: viewsData } = await supabaseServer
-      .from("vehicles")
-      .select("views");
+    const { data: viewsData } = await supabase.from("vehicles").select("views");
 
     const totalViews =
       viewsData?.reduce((sum, v) => sum + (v.views || 0), 0) || 0;
@@ -413,12 +376,10 @@ export async function getDashboardStats() {
   }
 }
 
-// ==============================================
-// VEHÍCULOS POR MARCA (PARA GRÁFICO)
-// ==============================================
 export async function getVehiclesByBrand() {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("brand")
       .neq("status", "sold");
@@ -428,13 +389,11 @@ export async function getVehiclesByBrand() {
       throw error;
     }
 
-    // Contar por marca
     const brandCounts: Record<string, number> = {};
     data?.forEach((v) => {
       brandCounts[v.brand] = (brandCounts[v.brand] || 0) + 1;
     });
 
-    // Convertir a array ordenado
     return Object.entries(brandCounts)
       .map(([brand, count]) => ({ brand, count }))
       .sort((a, b) => b.count - a.count);
@@ -444,12 +403,10 @@ export async function getVehiclesByBrand() {
   }
 }
 
-// ==============================================
-// ÚLTIMOS VEHÍCULOS AGREGADOS
-// ==============================================
 export async function getRecentVehicles(limit: number = 5) {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("*")
       .order("created_at", { ascending: false })
@@ -467,12 +424,10 @@ export async function getRecentVehicles(limit: number = 5) {
   }
 }
 
-// ==============================================
-// VEHÍCULOS MÁS VISTOS
-// ==============================================
 export async function getMostViewedVehicles(limit: number = 5) {
   try {
-    const { data, error } = await supabaseServer
+    const supabase = await createClient();
+    const { data, error } = await supabase
       .from("vehicles")
       .select("*")
       .order("views", { ascending: false })

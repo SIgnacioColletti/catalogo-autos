@@ -12,7 +12,7 @@ import { mockAgency } from "@/lib/data/agency";
 
 // Revalidar cada 5 minutos
 export const revalidate = 300;
-
+export const dynamic = "force-dynamic";
 // Metadata
 export const metadata = {
   title: "AutoMax Rosario - Vehículos Usados de Calidad",
