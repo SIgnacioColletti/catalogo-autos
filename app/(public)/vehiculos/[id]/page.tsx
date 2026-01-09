@@ -40,7 +40,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     notFound();
   }
   const [relatedVehicles, agency] = await Promise.all([
-    getRelatedVehicles(vehicle.brand, vehicle.id, 6), // ✅ 3 argumentos
+    getRelatedVehicles(vehicle.brand, vehicle.id, 6),
     getAgency("automax-rosario"),
   ]);
   const agencyData = agency || mockAgency;
@@ -49,7 +49,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
     `Hola! Estoy interesado en el ${vehicle.brand} ${vehicle.model} ${vehicle.year}. ¿Está disponible?`
   );
 
-  const whatsappUrl = `https://wa.me/${agencyData.whatsapp}?text=${whatsappMessage}`;
+  const whatsappUrl = `https://wa.me/5493413245783?text=${whatsappMessage}`;
 
   const fuelLabels: Record<string, string> = {
     nafta: "Nafta",

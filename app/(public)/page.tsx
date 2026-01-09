@@ -9,6 +9,7 @@ import {
   getTotalVehiclesCount,
 } from "@/lib/supabase/queries";
 import { mockAgency } from "@/lib/data/agency";
+
 export const dynamic = "force-dynamic";
 // Revalidar cada 5 minutos
 export const revalidate = 300;
